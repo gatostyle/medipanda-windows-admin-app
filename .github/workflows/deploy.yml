@@ -221,7 +221,7 @@ jobs:
         aws s3 cp ./publish/version.json "${s3Base}version.json" --content-type "application/json" --cache-control "no-cache, no-store, must-revalidate"
         Write-Host "✓ Uploaded: version.json"
         
-        aws s3 cp "${s3Base}${installerFile}" "${s3Base}setup.exe" --cache-control "max-age=300"
+        aws s3 cp $installerFile "${s3Base}setup.exe" --cache-control "max-age=300"
         Write-Host "✓ Copied to: setup.exe"
         
         Write-Host ""
