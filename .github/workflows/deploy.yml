@@ -211,7 +211,7 @@ jobs:
       run: |
         $version = "${{ steps.get_version.outputs.VERSION }}"
         $installerFile = "Medipanda-Setup-$version.exe"
-        $s3Base = "s3://${{ env.S3_BUCKET }}/${{ env.S3_PREFIX }}"
+        $s3Base = "s3://${{ env.S3_BUCKET }}/${{ env.S3_PREFIX }}/"
         
         Write-Host "=== Uploading to S3 ==="
         
@@ -226,8 +226,8 @@ jobs:
         
         Write-Host ""
         Write-Host "=== Deployment Complete ==="
-        Write-Host "Install URL: https://${{ env.CLOUDFRONT_DOMAIN }}/app/windows/setup.exe"
-        Write-Host "Version URL: https://${{ env.CLOUDFRONT_DOMAIN }}/app/windows/version.json"
+        Write-Host "Install URL: https://${{ env.CLOUDFRONT_DOMAIN }}/app/windows/admin-app/setup.exe"
+        Write-Host "Version URL: https://${{ env.CLOUDFRONT_DOMAIN }}/app/windows/admin-app/version.json"
       shell: pwsh
     
     - name: Verify deployment
@@ -248,12 +248,12 @@ jobs:
     - name: Create GitHub Release
       uses: softprops/action-gh-release@v1
       with:
-        files: Medipanda-Setup-${{ steps.get_version.outputs.VERSION }}.exe
+        files: Medipanda-Admin-Setup-${{ steps.get_version.outputs.VERSION }}.exe
         body: |
           ## 메디판다(관리자) v${{ steps.get_version.outputs.VERSION }}
           
           ### 다운로드
-          [설치 파일 다운로드](https://${{ env.CLOUDFRONT_DOMAIN }}/app/windows/setup.exe)
+          [설치 파일 다운로드](https://${{ env.CLOUDFRONT_DOMAIN }}/app/windows/admin-app/setup.exe)
           
           ### 변경사항
           - 버전 ${{ steps.get_version.outputs.VERSION }} 릴리스

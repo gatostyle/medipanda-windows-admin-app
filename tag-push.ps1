@@ -1,7 +1,7 @@
 # csproj에서 버전을 읽어서 자동으로 태그 생성 및 푸시
 
 # csproj 파일 경로 (프로젝트 루트에서 실행 가정)
-$csprojPath = "medipanda-windows-app/medipanda_windows_app.csproj"
+$csprojPath = "medipanda-windows-admin-app/medipanda-windows-admin-app.csproj"
 
 # XML 파싱하여 Version 읽기
 [xml]$csproj = Get-Content $csprojPath
