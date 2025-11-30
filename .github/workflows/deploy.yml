@@ -104,7 +104,7 @@ jobs:
     - name: Create version.json
       run: |
         $version = "${{ steps.get_version.outputs.VERSION }}"
-        $downloadUrl = "https://${{ env.CLOUDFRONT_DOMAIN }}/app/windows/Medipanda-Setup-$version.exe"
+        $downloadUrl = "https://${{ env.CLOUDFRONT_DOMAIN }}/app/windows/admin-app/Medipanda-Setup-$version.exe"
         
         $versionInfo = @{
           version = $version
