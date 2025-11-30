@@ -49,6 +49,11 @@ namespace medipanda_windows_admin.Converters
                     continue;
                 }
 
+                if (productCode.Length == 13)
+                {
+                    productCode = productCode.Substring(3, 9);
+                }
+
                 var row = new DongguSettlementRow
                 {
                     SettlementMonth = SettlementMonth,
@@ -92,6 +97,11 @@ namespace medipanda_windows_admin.Converters
                 {
                     currentRow++;
                     continue;
+                }
+
+                if (productCode.Length == 13)
+                {
+                    productCode = productCode.Substring(3, 9);
                 }
 
                 var row = new DongguSettlementRow
