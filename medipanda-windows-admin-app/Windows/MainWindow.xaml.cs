@@ -1,5 +1,6 @@
 ﻿using medipanda_windows_admin.Converters;
 using medipanda_windows_admin.Models.Response;
+using medipanda_windows_admin.Services;
 using Microsoft.Win32;
 using System.IO;
 using System.Windows;
@@ -85,8 +86,7 @@ namespace medipanda_windows_admin.Windows
 
             try
             {
-                // TODO: KIMS 데이터 업로드 로직
-                // await _kimsService.UploadAsync(filePath);
+                await KimsService.Instance.UploadKimsAsync(filePath);
 
                 MessageBox.Show("KIMS 데이터 업로드가 완료되었습니다.", "완료", MessageBoxButton.OK, MessageBoxImage.Information);
             }
@@ -107,6 +107,7 @@ namespace medipanda_windows_admin.Windows
             var selectedCompany = dialog.SelectedDrugCompany!;
             var selectedYear = dialog.SelectedYear;
             var selectedMonth = dialog.SelectedMonth;
+            var applyMonth = $"{selectedYear}.{selectedMonth:D2}";
 
             var openFileDialog = new OpenFileDialog
             {
@@ -122,10 +123,35 @@ namespace medipanda_windows_admin.Windows
 
             try
             {
-                // TODO: 요율표 업로드 로직
-                // await _rateTableService.UploadAsync(filePath, selectedCompany, selectedYear, selectedMonth);
+                // 제약사별 요율표 Converter
+                BaseRateConverter converter = selectedCompany.Name switch
+                {
+                    "(주)동구바이오제약" => new DongguRateConverter(),
+                    "국제약품(주)" => new KukjeRateConverter(),
+                    "영진약품" => new YoungjinRateConverter(),
+                    "한국파마" => new HankookRateConverter(),
+                    "에이치엘비제약(주)" => new HlbRateConverter(),
+                    _ => throw new NotSupportedException($"지원하지 않는 제약사입니다: {selectedCompany.Name}")
+                };
 
-                MessageBox.Show($"{selectedCompany.Name} {selectedYear}년 {selectedMonth}월 요율표 업로드가 완료되었습니다.", "완료", MessageBoxButton.OK, MessageBoxImage.Information);
+                using (converter)
+                {
+                    converter.DrugCompanyName = selectedCompany.Name;
+                    converter.ApplyMonth = applyMonth;
+                    converter.LoadFile(filePath);
+
+                    await converter.ParseAsync();
+
+                    // TODO: API 업로드
+                    // await _rateTableService.UploadAsync(converter.Data);
+
+                    MessageBox.Show(
+                        $"{selectedCompany.Name} {selectedYear}년 {selectedMonth}월 요율표 업로드가 완료되었습니다.\n" +
+                        $"총 {converter.Data.Rows.Count}건",
+                        "완료",
+                        MessageBoxButton.OK,
+                        MessageBoxImage.Information);
+                }
             }
             catch (Exception ex)
             {

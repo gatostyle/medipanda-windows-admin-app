@@ -3,9 +3,9 @@ using NPOI.SS.UserModel;
 
 namespace medipanda_windows_admin.Converters
 {
-    public class YoungjinRateConverter : BaseRateConverter
+    public class HankookRateConverter : BaseRateConverter
     {
-        private static readonly string[] HeaderKeywords = { "EDI코드", "품목명", "기준약가", "수수료율" };
+        private static readonly string[] HeaderKeywords = { "연번", "보험코드", "제품명", "보험가", "요율" };
 
         public override Task ParseAsync()
         {
@@ -25,9 +25,9 @@ namespace medipanda_windows_admin.Converters
             var colIndexes = FindColumnIndexes(sheet, headerRow);
 
             int currentRow = headerRow + 1;
-            while (!IsCellEmpty(sheet, currentRow, colIndexes["EDI코드"]))
+            while (!IsCellEmpty(sheet, currentRow, colIndexes["보험코드"]))
             {
-                var productCode = GetCellString(sheet, currentRow, colIndexes["EDI코드"]).Trim();
+                var productCode = GetCellString(sheet, currentRow, colIndexes["보험코드"]).Trim();
 
                 if (!string.IsNullOrEmpty(productCode))
                 {
@@ -35,9 +35,9 @@ namespace medipanda_windows_admin.Converters
                     {
                         DrugCompanyName = DrugCompanyName,
                         ProductCode = productCode,
-                        DrugPrice = GetCellDecimal(sheet, currentRow, colIndexes["기준약가"]),
-                        BaseCommissionRate = GetCellDecimal(sheet, currentRow, colIndexes["수수료율"]) * 100,
-                        Note = colIndexes["비고"] >= 0 ? GetCellString(sheet, currentRow, colIndexes["비고"]) : string.Empty
+                        DrugPrice = GetCellDecimal(sheet, currentRow, colIndexes["보험가"]),
+                        BaseCommissionRate = GetCellDecimal(sheet, currentRow, colIndexes["요율"]),
+                        Note = GetCellString(sheet, currentRow, colIndexes["비고"])
                     };
 
                     Data.Rows.Add(row);
@@ -53,9 +53,9 @@ namespace medipanda_windows_admin.Converters
         {
             var indexes = new Dictionary<string, int>
             {
-                { "EDI코드", -1 },
-                { "기준약가", -1 },
-                { "ㅜ롯ㅅ숳수료율", -1 },
+                { "보험코드", -1 },
+                { "보험가", -1 },
+                { "요율", -1 },
                 { "비고", -1 }
             };
 
@@ -65,16 +65,14 @@ namespace medipanda_windows_admin.Converters
             for (int i = 0; i < row.LastCellNum; i++)
             {
                 var cellValue = GetCellString(sheet, headerRow, i);
-                // 모든 공백 제거 후 비교
-                var cellValueNoSpace = cellValue.Replace(" ", "");
 
-                if (cellValueNoSpace.Contains("EDI코드"))
-                    indexes["EDI코드"] = i;
-                else if (cellValueNoSpace.Contains("기준약가"))
-                    indexes["기준약가"] = i;
-                else if (cellValueNoSpace.Contains("수수료율"))
-                    indexes["수수료율"] = i;
-                else if (cellValueNoSpace.Contains("비고"))
+                if (cellValue.Contains("보험코드"))
+                    indexes["보험코드"] = i;
+                else if (cellValue.Contains("보험가"))
+                    indexes["보험가"] = i;
+                else if (cellValue.Contains("요율"))
+                    indexes["요율"] = i;
+                else if (cellValue.Contains("비고"))
                     indexes["비고"] = i;
             }
 

@@ -6,13 +6,14 @@ using System.IO;
 
 namespace medipanda_windows_admin.Converters
 {
-    public abstract class BaseRateConverter : IRateConverter
+    public abstract class BaseRateConverter : IDisposable
     {
         protected IWorkbook? Workbook { get; private set; }
         private FileStream? _fileStream;
 
         public RateData Data { get; protected set; } = new();
         public string DrugCompanyName { get; set; } = string.Empty;
+        public string ApplyMonth { get; set; } = string.Empty;
 
         public void LoadFile(string filePath)
         {
@@ -45,12 +46,12 @@ namespace medipanda_windows_admin.Converters
             return Workbook.GetSheetAt(index);
         }
 
-        protected string GetCellString(ISheet sheet, int rowIndex, string column)
+        protected string GetCellString(ISheet sheet, int rowIndex, int colIndex)
         {
-            var row = sheet.GetRow(rowIndex - 1);
+            var row = sheet.GetRow(rowIndex);
             if (row == null) return string.Empty;
 
-            var cell = row.GetCell(ColumnToIndex(column));
+            var cell = row.GetCell(colIndex);
             if (cell == null) return string.Empty;
 
             return cell.CellType switch
@@ -63,12 +64,12 @@ namespace medipanda_windows_admin.Converters
             };
         }
 
-        protected decimal GetCellDecimal(ISheet sheet, int rowIndex, string column)
+        protected decimal GetCellDecimal(ISheet sheet, int rowIndex, int colIndex)
         {
-            var row = sheet.GetRow(rowIndex - 1);
+            var row = sheet.GetRow(rowIndex);
             if (row == null) return 0;
 
-            var cell = row.GetCell(ColumnToIndex(column));
+            var cell = row.GetCell(colIndex);
             if (cell == null) return 0;
 
             return cell.CellType switch
@@ -80,41 +81,12 @@ namespace medipanda_windows_admin.Converters
             };
         }
 
-        protected decimal GetCellPercent(ISheet sheet, int rowIndex, string column)
+        protected bool IsCellEmpty(ISheet sheet, int rowIndex, int colIndex)
         {
-            var row = sheet.GetRow(rowIndex - 1);
-            if (row == null) return 0;
-
-            var cell = row.GetCell(ColumnToIndex(column));
-            if (cell == null) return 0;
-
-            return cell.CellType switch
-            {
-                CellType.Numeric => (decimal)cell.NumericCellValue * 100,
-                CellType.String => ParsePercentString(cell.StringCellValue),
-                CellType.Formula => (decimal)cell.NumericCellValue * 100,
-                _ => 0
-            };
-        }
-
-        private decimal ParsePercentString(string? value)
-        {
-            if (string.IsNullOrWhiteSpace(value)) return 0;
-
-            value = value.Trim().Replace("%", "");
-            if (decimal.TryParse(value, out var result))
-            {
-                return result < 1 ? result * 100 : result;
-            }
-            return 0;
-        }
-
-        protected bool IsCellEmpty(ISheet sheet, int rowIndex, string column)
-        {
-            var row = sheet.GetRow(rowIndex - 1);
+            var row = sheet.GetRow(rowIndex);
             if (row == null) return true;
 
-            var cell = row.GetCell(ColumnToIndex(column));
+            var cell = row.GetCell(colIndex);
             if (cell == null) return true;
 
             return cell.CellType == CellType.Blank ||
@@ -138,14 +110,30 @@ namespace medipanda_windows_admin.Converters
             }
         }
 
-        private int ColumnToIndex(string column)
+        protected int FindHeaderRow(ISheet sheet, string[] headerKeywords)
         {
-            int index = 0;
-            foreach (char c in column.ToUpper())
+            for (int i = 0; i <= sheet.LastRowNum; i++)
             {
-                index = index * 26 + (c - 'A' + 1);
+                var row = sheet.GetRow(i);
+                if (row == null) continue;
+
+                int matchCount = 0;
+                for (int j = 0; j < row.LastCellNum; j++)
+                {
+                    var cellValue = GetCellString(sheet, i, j);
+                    if (headerKeywords.Any(k => cellValue.Contains(k)))
+                    {
+                        matchCount++;
+                    }
+                }
+
+                if (matchCount >= 3)  // 최소 3개 이상 매칭되면 헤더로 판단
+                {
+                    return i;
+                }
             }
-            return index - 1;
+
+            return -1;
         }
 
         #endregion

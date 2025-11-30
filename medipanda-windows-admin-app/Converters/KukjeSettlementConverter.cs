@@ -106,7 +106,7 @@ namespace medipanda_windows_admin.Converters
             {
                 if (partnerCache.TryGetValue(row.ClientCode, out var partner))
                 {
-                    row.MemberNo = partner.Id.ToString();
+                    row.MemberNo = partner.MemberId.ToString();
                     row.ManagerName = partner.MemberName;
                     row.BusinessNumber = partner.BusinessNumber;
                 }

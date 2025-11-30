@@ -196,6 +196,21 @@ namespace medipanda_windows_admin.Services.Base
             }
         }
 
+        protected async Task PostAsync(string endpoint, bool useAuth = true)
+        {
+            try
+            {
+                var fullUrl = $"{BaseUrl}{endpoint}";
+                var request = new HttpRequestMessage(HttpMethod.Post, fullUrl);
+
+                var response = await SendWithTokenRefreshAsync(request, useAuth);
+                response.EnsureSuccessStatusCode();
+            }
+            catch (Exception ex)
+            {
+                throw new Exception($"POST 요청 실패: {ex.Message}", ex);
+            }
+        }
         protected async Task<T> PostAsync<T>(string endpoint, object data, bool useAuth = true)
         {
             try
