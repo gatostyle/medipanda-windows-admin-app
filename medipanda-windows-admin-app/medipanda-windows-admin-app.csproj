@@ -1,0 +1,38 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net8.0-windows</TargetFramework>
+    <RootNamespace>medipanda_windows_admin</RootNamespace>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <UseWPF>true</UseWPF>
+
+	  <!-- Self-Contained 배포 설정 (.NET 런타임 포함) -->
+	  <SelfContained>true</SelfContained>
+	  <RuntimeIdentifier>win-x64</RuntimeIdentifier>
+	  <PublishSingleFile>true</PublishSingleFile>
+	  <PublishReadyToRun>true</PublishReadyToRun>
+	  <IncludeNativeLibrariesForSelfExtract>true</IncludeNativeLibrariesForSelfExtract>
+
+	  <!-- 버전 정보 -->
+	  <Version>1.0.0</Version>
+	  <AssemblyVersion>1.0.0.0</AssemblyVersion>
+	  <FileVersion>1.0.0.0</FileVersion>
+
+	  <!-- 앱 정보 -->
+	  <ApplicationTitle>메디판다(관리자)</ApplicationTitle>
+	  <AssemblyName>Medipanda</AssemblyName>
+	  <Company>(주)케이앤메디슨</Company>
+	  <Product>메디판다(관리자)</Product>
+	  <Copyright>Copyright © 2025 (주)케이앤메디슨</Copyright>
+	  <Description>메디판다 관리자용 애플리케이션</Description>
+
+	  <ApplicationIcon>Assets\icon.ico</ApplicationIcon>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="NPOI" Version="2.7.5" />
+  </ItemGroup>
+
+</Project>

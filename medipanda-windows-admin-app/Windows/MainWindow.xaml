@@ -1,0 +1,29 @@
+﻿<Window x:Class="medipanda_windows_admin.Windows.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="메디판다(관리자)" Height="400" Width="700"
+        WindowStartupLocation="CenterScreen">
+
+    <Grid Background="DarkGray">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+        </Grid.RowDefinitions>
+
+        <!-- 상단 메뉴바 -->
+        <Menu Grid.Row="0" Background="#F5F5F5" Padding="5,2">
+            <MenuItem Header="파일">
+                <MenuItem Header="정산파일 변환" Click="ConvertSettlement_Click"/>
+                <MenuItem Header="요율표 업로드" Click="UploadRateTable_Click"/>
+                <MenuItem Header="KIMS 데이터 업로드" Click="UploadKimsData_Click"/>
+                <Separator/>
+                <MenuItem Header="종료" Click="Exit_Click"/>
+            </MenuItem>
+        </Menu>
+
+        <!-- 메인 컨텐츠 영역 -->
+        <Grid Grid.Row="1">
+
+        </Grid>
+    </Grid>
+</Window>

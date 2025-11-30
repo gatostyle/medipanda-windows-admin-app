@@ -1,0 +1,275 @@
+﻿name: Build and Deploy to S3
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+
+permissions:
+  contents: write
+
+env:
+  DOTNET_VERSION: '8.0.x'
+  S3_BUCKET: 'medipanda'
+  S3_PREFIX: 'app/windows/admin-app'
+  AWS_REGION: 'ap-northeast-2'
+  CLOUDFRONT_DOMAIN: 'cdn.medipanda.co.kr'
+
+jobs:
+  build-and-deploy:
+    runs-on: windows-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+    
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v3
+      with:
+        dotnet-version: ${{ env.DOTNET_VERSION }}
+    
+    - name: Find .csproj file
+      id: find_csproj
+      run: |
+        $csprojFile = Get-ChildItem -Recurse -Filter "*.csproj" | Select-Object -First 1
+        $csprojDir = $csprojFile.Directory.FullName
+        $csprojName = $csprojFile.Name
+        $csprojFull = $csprojFile.FullName
+        
+        echo "CSPROJ_DIR=$csprojDir" >> $env:GITHUB_OUTPUT
+        echo "CSPROJ_NAME=$csprojName" >> $env:GITHUB_OUTPUT
+        echo "CSPROJ_FULL=$csprojFull" >> $env:GITHUB_OUTPUT
+      shell: pwsh
+    
+    - name: Extract version from tag
+      id: get_version
+      run: |
+        $version = "${{ github.ref }}" -replace 'refs/tags/v', ''
+        echo "VERSION=$version" >> $env:GITHUB_OUTPUT
+      shell: pwsh
+    
+    - name: Update project version
+      run: |
+        $version = "${{ steps.get_version.outputs.VERSION }}"
+        $csprojPath = "${{ steps.find_csproj.outputs.CSPROJ_FULL }}"
+        
+        $csproj = Get-Content $csprojPath -Raw
+        
+        if ($csproj -notmatch '<Version>') {
+          $csproj = $csproj -replace '(</PropertyGroup>)', "    <Version>$version</Version>`n    <AssemblyVersion>$version.0</AssemblyVersion>`n    <FileVersion>$version.0</FileVersion>`n  `$1"
+        } else {
+          if ($csproj -match '<Version>') {
+            $csproj = $csproj -replace '<Version>.*</Version>', "<Version>$version</Version>"
+          }
+          if ($csproj -notmatch '<AssemblyVersion>') {
+            $csproj = $csproj -replace '(<Version>.*</Version>)', "`$1`n    <AssemblyVersion>$version.0</AssemblyVersion>"
+          } else {
+            $csproj = $csproj -replace '<AssemblyVersion>.*</AssemblyVersion>', "<AssemblyVersion>$version.0</AssemblyVersion>"
+          }
+          if ($csproj -notmatch '<FileVersion>') {
+            $csproj = $csproj -replace '(<AssemblyVersion>.*</AssemblyVersion>)', "`$1`n    <FileVersion>$version.0</FileVersion>"
+          } else {
+            $csproj = $csproj -replace '<FileVersion>.*</FileVersion>', "<FileVersion>$version.0</FileVersion>"
+          }
+        }
+        
+        Set-Content $csprojPath $csproj -Encoding UTF8
+      shell: pwsh
+    
+    - name: Restore dependencies
+      working-directory: ${{ steps.find_csproj.outputs.CSPROJ_DIR }}
+      run: dotnet restore ${{ steps.find_csproj.outputs.CSPROJ_NAME }}
+    
+    - name: Build
+      working-directory: ${{ steps.find_csproj.outputs.CSPROJ_DIR }}
+      run: dotnet build ${{ steps.find_csproj.outputs.CSPROJ_NAME }} -c Release --no-restore
+    
+    - name: Publish (Self-Contained with .NET Runtime)
+      working-directory: ${{ steps.find_csproj.outputs.CSPROJ_DIR }}
+      run: |
+        dotnet publish ${{ steps.find_csproj.outputs.CSPROJ_NAME }} `
+          -c Release `
+          -r win-x64 `
+          --self-contained true `
+          -p:PublishSingleFile=true `
+          -p:PublishReadyToRun=true `
+          -p:IncludeNativeLibrariesForSelfExtract=true `
+          -o ${{ github.workspace }}/publish `
+          --no-build
+        
+        Write-Host "=== Published files ==="
+        Get-ChildItem ${{ github.workspace }}/publish
+      shell: pwsh
+    
+    - name: Create version.json
+      run: |
+        $version = "${{ steps.get_version.outputs.VERSION }}"
+        $downloadUrl = "https://${{ env.CLOUDFRONT_DOMAIN }}/app/windows/Medipanda-Setup-$version.exe"
+        
+        $versionInfo = @{
+          version = $version
+          downloadUrl = $downloadUrl
+          isForceUpdate = $true
+          releaseNotes = "Version $version released"
+          releaseDate = (Get-Date -Format "yyyy-MM-dd HH:mm:ss")
+        }
+        
+        $json = $versionInfo | ConvertTo-Json -Depth 10
+        Set-Content -Path ./publish/version.json -Value $json -Encoding UTF8
+      shell: pwsh
+    
+    - name: Create installer with Inno Setup (Korean)
+      run: |
+        choco install innosetup -y
+        
+        $version = "${{ steps.get_version.outputs.VERSION }}"
+        $exeFile = Get-ChildItem -Path "./publish" -Filter "*.exe" | Select-Object -First 1
+        $exeName = $exeFile.Name
+        
+        Write-Host "Found executable: $exeName"
+        
+        # Inno Setup 스크립트 파일 생성
+        $setupScript = @"
+        ; UTF-8 with BOM
+        #define MyAppName "메디판다(관리자)"
+        #define MyAppVersion "$version"
+        #define MyAppPublisher "(주)케이앤메디슨"
+        #define MyAppURL "https://medipanda.co.kr"
+        #define MyAppExeName "$exeName"
+
+        [Setup]
+        AppId={{F1E2D3C4-B5A6-7890-ABCD-EF1234567890}
+        AppName={#MyAppName}
+        AppVersion={#MyAppVersion}
+        AppPublisher={#MyAppPublisher}
+        AppPublisherURL={#MyAppURL}
+        AppSupportURL={#MyAppURL}/support
+        AppUpdatesURL={#MyAppURL}/downloads
+        AppCopyright=Copyright © 2025 (주)케이앤메디슨
+        DefaultDirName={autopf}\Medipanda
+        DefaultGroupName={#MyAppName}
+        DisableProgramGroupPage=yes
+        OutputDir=.
+        OutputBaseFilename=Medipanda-Setup-{#MyAppVersion}
+        Compression=lzma2
+        SolidCompression=yes
+        ArchitecturesAllowed=x64
+        ArchitecturesInstallIn64BitMode=x64
+        PrivilegesRequired=lowest
+        UninstallDisplayIcon={app}\{#MyAppExeName}
+        WizardStyle=modern
+        
+        ; 한글 언어 설정
+        [Languages]
+        Name: "korean"; MessagesFile: "compiler:Languages\Korean.isl"
+
+        [Tasks]
+        Name: "desktopicon"; Description: "바탕 화면에 바로 가기 만들기"; GroupDescription: "추가 작업:"; Flags: unchecked
+
+        [Files]
+        Source: "publish\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
+
+        [Icons]
+        Name: "{group}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"
+        Name: "{group}\{#MyAppName} 제거"; Filename: "{uninstallexe}"
+        Name: "{autodesktop}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"; Tasks: desktopicon
+
+        [Run]
+        Filename: "{app}\{#MyAppExeName}"; Description: "{#MyAppName} 실행"; Flags: nowait postinstall skipifsilent
+
+        [UninstallDelete]
+        Type: filesandordirs; Name: "{app}"
+        "@
+        
+        # UTF-8 with BOM으로 저장
+        $utf8Bom = New-Object System.Text.UTF8Encoding $true
+        [System.IO.File]::WriteAllText("$PWD\setup.iss", $setupScript, $utf8Bom)
+        
+        Write-Host "=== Inno Setup Script ==="
+        Get-Content setup.iss
+        Write-Host "========================"
+        
+        & "C:\Program Files (x86)\Inno Setup 6\ISCC.exe" setup.iss
+        
+        if ($LASTEXITCODE -ne 0) {
+          Write-Host "ERROR: Inno Setup compilation failed!"
+          exit 1
+        }
+        
+        Write-Host "=== Installer created ==="
+        Get-ChildItem *.exe
+      shell: pwsh
+    
+    - name: Configure AWS credentials
+      uses: aws-actions/configure-aws-credentials@v2
+      with:
+        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        aws-region: ${{ env.AWS_REGION }}
+    
+    - name: Upload to S3
+      run: |
+        $version = "${{ steps.get_version.outputs.VERSION }}"
+        $installerFile = "Medipanda-Setup-$version.exe"
+        $s3Base = "s3://${{ env.S3_BUCKET }}/${{ env.S3_PREFIX }}"
+        
+        Write-Host "=== Uploading to S3 ==="
+        
+        aws s3 cp $installerFile "${s3Base}${installerFile}" --cache-control "max-age=300"
+        Write-Host "✓ Uploaded: $installerFile"
+        
+        aws s3 cp ./publish/version.json "${s3Base}version.json" --content-type "application/json" --cache-control "no-cache, no-store, must-revalidate"
+        Write-Host "✓ Uploaded: version.json"
+        
+        aws s3 cp "${s3Base}${installerFile}" "${s3Base}setup.exe" --cache-control "max-age=300"
+        Write-Host "✓ Copied to: setup.exe"
+        
+        Write-Host ""
+        Write-Host "=== Deployment Complete ==="
+        Write-Host "Install URL: https://${{ env.CLOUDFRONT_DOMAIN }}/app/windows/setup.exe"
+        Write-Host "Version URL: https://${{ env.CLOUDFRONT_DOMAIN }}/app/windows/version.json"
+      shell: pwsh
+    
+    - name: Verify deployment
+      run: |
+        Start-Sleep -Seconds 10
+        $versionUrl = "https://${{ env.CLOUDFRONT_DOMAIN }}/${{ env.S3_PREFIX }}version.json"
+        
+        try {
+          $response = Invoke-WebRequest -Uri $versionUrl -UseBasicParsing
+          Write-Host "✓ Deployment verified!"
+          Write-Host $response.Content
+        } catch {
+          Write-Host "⚠ Verification failed (CloudFront may need time to update)"
+          Write-Host $_.Exception.Message
+        }
+      shell: pwsh
+    
+    - name: Create GitHub Release
+      uses: softprops/action-gh-release@v1
+      with:
+        files: Medipanda-Setup-${{ steps.get_version.outputs.VERSION }}.exe
+        body: |
+          ## 메디판다(관리자) v${{ steps.get_version.outputs.VERSION }}
+          
+          ### 다운로드
+          [설치 파일 다운로드](https://${{ env.CLOUDFRONT_DOMAIN }}/app/windows/setup.exe)
+          
+          ### 변경사항
+          - 버전 ${{ steps.get_version.outputs.VERSION }} 릴리스
+          
+          ### 시스템 요구사항
+          - Windows 10/11 (64-bit)
+          - .NET Runtime 포함 (별도 설치 불필요)
+          
+          ### 설치 방법
+          1. 위 링크에서 설치 파일 다운로드
+          2. 다운로드한 파일 실행
+          3. 설치 마법사 지시에 따라 설치
+          
+          ### 제공
+          (주)케이앤메디슨
+        draft: false
+        prerelease: false
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
