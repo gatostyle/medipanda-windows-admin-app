@@ -143,6 +143,35 @@ namespace medipanda_windows_admin.Converters
             workbook.Close();
         }
 
+        protected decimal GetCellPercent(ISheet sheet, int rowIndex, string column)
+        {
+            var row = sheet.GetRow(rowIndex - 1);
+            if (row == null) return 0;
+
+            var cell = row.GetCell(ColumnToIndex(column));
+            if (cell == null) return 0;
+
+            return cell.CellType switch
+            {
+                CellType.Numeric => (decimal)cell.NumericCellValue * 100,
+                CellType.String => ParsePercentString(cell.StringCellValue),
+                CellType.Formula => (decimal)cell.NumericCellValue * 100,
+                _ => 0
+            };
+        }
+
+        private decimal ParsePercentString(string? value)
+        {
+            if (string.IsNullOrWhiteSpace(value)) return 0;
+
+            value = value.Trim().Replace("%", "");
+            if (decimal.TryParse(value, out var result))
+            {
+                return result < 1 ? result * 100 : result;
+            }
+            return 0;
+        }
+
         public void Dispose()
         {
             Workbook?.Close();

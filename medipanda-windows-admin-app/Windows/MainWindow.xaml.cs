@@ -49,6 +49,7 @@ namespace medipanda_windows_admin.Windows
                 {
                     "국제약품(주)" => new KukjeSettlementConverter(),
                     "영진약품" => new YoungjinSettlementConverter(),
+                    "(주)동구바이오제약" => new DongguSettlementConverter(),
                     _ => throw new NotSupportedException($"지원하지 않는 제약사입니다: {selectedCompany.Name}")
                 };
 
