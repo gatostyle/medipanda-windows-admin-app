@@ -5,6 +5,12 @@ using System.Windows.Controls;
 
 namespace medipanda_windows_admin.Windows
 {
+    public enum DialogMode
+    {
+        Settlement,  // 정산파일 변환
+        RateTable    // 요율표 업로드
+    }
+
     public partial class SelectDrugCompanyDialog : Window
     {
         private readonly DrugCompanyService _drugCompanyService;
@@ -13,10 +19,12 @@ namespace medipanda_windows_admin.Windows
         public int SelectedYear { get; private set; }
         public int SelectedMonth { get; private set; }
 
-        public SelectDrugCompanyDialog()
+        public SelectDrugCompanyDialog(DialogMode mode = DialogMode.Settlement)
         {
             InitializeComponent();
             _drugCompanyService = new DrugCompanyService();
+
+            ApplyMode(mode);
 
             DrugCompanyListBox.SelectionChanged += (s, e) => UpdateConfirmButton();
             MonthComboBox.SelectionChanged += (s, e) => UpdateConfirmButton();
@@ -24,6 +32,21 @@ namespace medipanda_windows_admin.Windows
             InitializeYearMonth();
 
             Loaded += async (s, e) => await LoadDrugCompanies();
+        }
+
+        private void ApplyMode(DialogMode mode)
+        {
+            switch (mode)
+            {
+                case DialogMode.Settlement:
+                    Title = "정산파일 변환";
+                    MonthLabel.Text = "정산월 선택";
+                    break;
+                case DialogMode.RateTable:
+                    Title = "요율표 업로드";
+                    MonthLabel.Text = "적용월 선택";
+                    break;
+            }
         }
 
         private void InitializeYearMonth()

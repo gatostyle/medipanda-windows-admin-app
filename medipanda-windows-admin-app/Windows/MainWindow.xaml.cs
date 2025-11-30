@@ -15,7 +15,7 @@ namespace medipanda_windows_admin.Windows
 
         private async void ConvertSettlement_Click(object sender, RoutedEventArgs e)
         {
-            var dialog = new SelectDrugCompanyDialog();
+            var dialog = new SelectDrugCompanyDialog(DialogMode.Settlement);
             dialog.Owner = this;
 
             if (dialog.ShowDialog() != true || dialog.SelectedDrugCompany == null)
@@ -68,14 +68,68 @@ namespace medipanda_windows_admin.Windows
             }
         }
 
-        private void UploadRateTable_Click(object sender, RoutedEventArgs e)
+        private async void UploadKimsData_Click(object sender, RoutedEventArgs e)
         {
-            MessageBox.Show("요율표 업로드", "알림");
+            var openFileDialog = new OpenFileDialog
+            {
+                Title = "KIMS 데이터 파일 선택",
+                Filter = "Excel 파일 (*.xlsx;*.xls)|*.xlsx;*.xls",
+                Multiselect = false
+            };
+
+            if (openFileDialog.ShowDialog() != true)
+                return;
+
+            var filePath = openFileDialog.FileName;
+
+            try
+            {
+                // TODO: KIMS 데이터 업로드 로직
+                // await _kimsService.UploadAsync(filePath);
+
+                MessageBox.Show("KIMS 데이터 업로드가 완료되었습니다.", "완료", MessageBoxButton.OK, MessageBoxImage.Information);
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"업로드 중 오류가 발생했습니다.\n{ex.Message}", "오류", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
         }
 
-        private void UploadKimsData_Click(object sender, RoutedEventArgs e)
+        private async void UploadRateTable_Click(object sender, RoutedEventArgs e)
         {
-            MessageBox.Show("KIMS 데이터 업로드", "알림");
+            var dialog = new SelectDrugCompanyDialog(DialogMode.RateTable);
+            dialog.Owner = this;
+
+            if (dialog.ShowDialog() != true || dialog.SelectedDrugCompany == null)
+                return;
+
+            var selectedCompany = dialog.SelectedDrugCompany!;
+            var selectedYear = dialog.SelectedYear;
+            var selectedMonth = dialog.SelectedMonth;
+
+            var openFileDialog = new OpenFileDialog
+            {
+                Title = "요율표 파일 선택",
+                Filter = "Excel 파일 (*.xlsx;*.xls)|*.xlsx;*.xls",
+                Multiselect = false
+            };
+
+            if (openFileDialog.ShowDialog() != true)
+                return;
+
+            var filePath = openFileDialog.FileName;
+
+            try
+            {
+                // TODO: 요율표 업로드 로직
+                // await _rateTableService.UploadAsync(filePath, selectedCompany, selectedYear, selectedMonth);
+
+                MessageBox.Show($"{selectedCompany.Name} {selectedYear}년 {selectedMonth}월 요율표 업로드가 완료되었습니다.", "완료", MessageBoxButton.OK, MessageBoxImage.Information);
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"업로드 중 오류가 발생했습니다.\n{ex.Message}", "오류", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
         }
 
         private void Exit_Click(object sender, RoutedEventArgs e)

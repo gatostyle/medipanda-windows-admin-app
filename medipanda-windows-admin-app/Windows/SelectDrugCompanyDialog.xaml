@@ -16,10 +16,11 @@
 
         <!-- 정산월 선택 -->
         <StackPanel Grid.Row="0" Margin="0,0,0,15">
-            <TextBlock Text="정산월 선택" 
-                       FontSize="14" 
-                       FontWeight="Bold"
-                       Margin="0,0,0,8"/>
+            <TextBlock x:Name="MonthLabel"
+               Text="정산월 선택" 
+               FontSize="14" 
+               FontWeight="Bold"
+               Margin="0,0,0,8"/>
             <Grid>
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="*"/>

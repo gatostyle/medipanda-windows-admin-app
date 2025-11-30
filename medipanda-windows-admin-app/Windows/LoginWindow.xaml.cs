@@ -27,6 +27,14 @@ namespace medipanda_windows_admin.Windows
             // 포커스를 받을 수 있도록 설정
             this.Focusable = true;
             this.Focus();
+
+            this.Loaded += (s, e) =>
+            {
+                if (DevModeText != null)
+                {
+                    DevModeText.Visibility = AppConfig.IsDevMode ? Visibility.Visible : Visibility.Collapsed;
+                }
+            };
         }
 
         private void LoginWindow_KeyDown(object sender, KeyEventArgs e)
@@ -137,6 +145,8 @@ namespace medipanda_windows_admin.Windows
                 // 방법 3: 파일 버전 사용
                 // var version = System.Diagnostics.FileVersionInfo.GetVersionInfo(assembly.Location).FileVersion;
                 // VersionText.Text = $"v{version}";
+
+                
             }
             catch
             {

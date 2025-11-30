@@ -43,7 +43,7 @@ namespace medipanda_windows_admin.Converters
                     Quantity = GetCellDecimal(sheet, currentRow, "O"),
                     UnitPrice = GetCellDecimal(sheet, currentRow, "P"),
                     PrescriptionAmount = GetCellDecimal(sheet, currentRow, "Q"),
-                    CommissionRate = GetCellDecimal(sheet, currentRow, "S"),
+                    CommissionRate = GetCellDecimal(sheet, currentRow, "S") * 100,
                     CommissionAmount = GetCellDecimal(sheet, currentRow, "V"),
                     Note = GetCellString(sheet, currentRow, "W")
                 };
