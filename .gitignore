@@ -366,3 +366,5 @@ setup.exe
 *.msi
 *.zip
 release-*.zip
+
+AppConfig.cs

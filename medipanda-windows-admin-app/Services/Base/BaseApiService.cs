@@ -47,6 +47,7 @@ namespace medipanda_windows_admin.Services.Base
             }
 
             var response = await _httpClient.SendAsync(request);
+            System.Diagnostics.Debug.WriteLine($"Response: {response.StatusCode}");
 
             // 401 Unauthorized이고 인증을 사용하는 경우, 토큰 갱신 시도
             if (response.StatusCode == HttpStatusCode.Unauthorized && useAuth)
@@ -283,6 +284,25 @@ namespace medipanda_windows_admin.Services.Base
             catch (Exception ex)
             {
                 throw new Exception($"DELETE 요청 실패: {ex.Message}", ex);
+            }
+        }
+
+        protected async Task PostMultipartAsync(string endpoint, MultipartFormDataContent content, bool useAuth = true)
+        {
+            try
+            {
+                var fullUrl = $"{BaseUrl}{endpoint}";
+                var request = new HttpRequestMessage(HttpMethod.Post, fullUrl)
+                {
+                    Content = content
+                };
+
+                var response = await SendWithTokenRefreshAsync(request, useAuth);
+                response.EnsureSuccessStatusCode();
+            }
+            catch (Exception ex)
+            {
+                throw new Exception($"Multipart POST 요청 실패: {ex.Message}", ex);
             }
         }
 

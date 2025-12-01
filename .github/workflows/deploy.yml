@@ -76,6 +76,41 @@ jobs:
         Set-Content $csprojPath $csproj -Encoding UTF8
       shell: pwsh
     
+    - name: Create AppConfig.cs
+      run: |
+        $csprojDir = "${{ steps.find_csproj.outputs.CSPROJ_DIR }}"
+        $appConfigPath = "$csprojDir\AppConfig.cs"
+        
+        $content = @"
+namespace medipanda_windows_admin
+{
+    public static class AppConfig
+    {
+        public const string AwsAccessKeyId = "${{ secrets.AWS_ACCESS_KEY_ID }}";
+        public const string AwsSecretAccessKey = "${{ secrets.AWS_SECRET_ACCESS_KEY }}";
+
+        private static bool _isDevMode = false;
+
+        public static bool IsDevMode
+        {
+            get => _isDevMode;
+            set => _isDevMode = value;
+        }
+
+        public static string GetBaseUrl()
+        {
+            return _isDevMode
+                ? "https://dev.api.medipanda.co.kr"
+                : "https://prod.api.medipanda.co.kr";
+        }
+    }
+}
+"@
+        
+        Set-Content -Path $appConfigPath -Value $content -Encoding UTF8
+        Write-Host "Created AppConfig.cs at $appConfigPath"
+      shell: pwsh
+    
     - name: Restore dependencies
       working-directory: ${{ steps.find_csproj.outputs.CSPROJ_DIR }}
       run: dotnet restore ${{ steps.find_csproj.outputs.CSPROJ_NAME }}
@@ -128,7 +163,6 @@ jobs:
         
         Write-Host "Found executable: $exeName"
         
-        # Inno Setup 스크립트 파일 생성
         $setupScript = @"
         ; UTF-8 with BOM
         #define MyAppName "메디판다(관리자)"
@@ -159,7 +193,6 @@ jobs:
         UninstallDisplayIcon={app}\{#MyAppExeName}
         WizardStyle=modern
         
-        ; 한글 언어 설정
         [Languages]
         Name: "korean"; MessagesFile: "compiler:Languages\Korean.isl"
 
@@ -179,15 +212,10 @@ jobs:
 
         [UninstallDelete]
         Type: filesandordirs; Name: "{app}"
-        "@
+"@
         
-        # UTF-8 with BOM으로 저장
         $utf8Bom = New-Object System.Text.UTF8Encoding $true
         [System.IO.File]::WriteAllText("$PWD\setup.iss", $setupScript, $utf8Bom)
-        
-        Write-Host "=== Inno Setup Script ==="
-        Get-Content setup.iss
-        Write-Host "========================"
         
         & "C:\Program Files (x86)\Inno Setup 6\ISCC.exe" setup.iss
         
@@ -233,7 +261,7 @@ jobs:
     - name: Verify deployment
       run: |
         Start-Sleep -Seconds 10
-        $versionUrl = "https://${{ env.CLOUDFRONT_DOMAIN }}/${{ env.S3_PREFIX }}version.json"
+        $versionUrl = "https://${{ env.CLOUDFRONT_DOMAIN }}/${{ env.S3_PREFIX }}/version.json"
         
         try {
           $response = Invoke-WebRequest -Uri $versionUrl -UseBasicParsing
@@ -248,7 +276,7 @@ jobs:
     - name: Create GitHub Release
       uses: softprops/action-gh-release@v1
       with:
-        files: Medipanda-Admin-Setup-${{ steps.get_version.outputs.VERSION }}.exe
+        files: Medipanda-Setup-${{ steps.get_version.outputs.VERSION }}.exe
         body: |
           ## 메디판다(관리자) v${{ steps.get_version.outputs.VERSION }}
           

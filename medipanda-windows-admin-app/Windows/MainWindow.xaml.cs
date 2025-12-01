@@ -142,8 +142,7 @@ namespace medipanda_windows_admin.Windows
 
                     await converter.ParseAsync();
 
-                    // TODO: API 업로드
-                    // await _rateTableService.UploadAsync(converter.Data);
+                    await RateTableService.Instance.UploadRateTableAsync(filePath, selectedYear, selectedMonth);
 
                     MessageBox.Show(
                         $"{selectedCompany.Name} {selectedYear}년 {selectedMonth}월 요율표 업로드가 완료되었습니다.\n" +
