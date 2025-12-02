@@ -212,6 +212,29 @@ namespace medipanda_windows_admin.Services.Base
                 throw new Exception($"POST 요청 실패: {ex.Message}", ex);
             }
         }
+
+        protected async Task PostAsync(string endpoint, object data, bool useAuth = true)
+        {
+            try
+            {
+                var fullUrl = $"{BaseUrl}{endpoint}";
+                var json = JsonSerializer.Serialize(data, _jsonOptions);
+                var content = new StringContent(json, Encoding.UTF8, "application/json");
+
+                var request = new HttpRequestMessage(HttpMethod.Post, fullUrl)
+                {
+                    Content = content
+                };
+
+                var response = await SendWithTokenRefreshAsync(request, useAuth);
+                response.EnsureSuccessStatusCode();
+            }
+            catch (Exception ex)
+            {
+                throw new Exception($"POST 요청 실패: {ex.Message}", ex);
+            }
+        }
+
         protected async Task<T> PostAsync<T>(string endpoint, object data, bool useAuth = true)
         {
             try

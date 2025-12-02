@@ -1,5 +1,4 @@
 ﻿using medipanda_windows_admin.Converters;
-using medipanda_windows_admin.Models.Response;
 using medipanda_windows_admin.Services;
 using Microsoft.Win32;
 using System.IO;
@@ -14,6 +13,36 @@ namespace medipanda_windows_admin.Windows
             InitializeComponent();
         }
 
+        private async Task RunWithProgressAsync(string message, Func<Action<string>, Task> action)
+        {
+            var progressDialog = new ProgressDialog(message);
+            progressDialog.Owner = this;
+
+            try
+            {
+                var task = Task.Run(async () =>
+                {
+                    await action((msg) => progressDialog.UpdateMessage(msg));
+                });
+
+                progressDialog.Loaded += async (s, e) =>
+                {
+                    await task;
+                    progressDialog.Close();
+                };
+
+                progressDialog.ShowDialog();
+
+                await task; // 예외 전파
+            }
+            catch
+            {
+                if (progressDialog.IsVisible)
+                    progressDialog.Close();
+                throw;
+            }
+        }
+
         private async void ConvertSettlement_Click(object sender, RoutedEventArgs e)
         {
             var dialog = new SelectDrugCompanyDialog(DialogMode.Settlement);
@@ -25,7 +54,7 @@ namespace medipanda_windows_admin.Windows
             var selectedCompany = dialog.SelectedDrugCompany!;
             var selectedYear = dialog.SelectedYear;
             var selectedMonth = dialog.SelectedMonth;
-            var settlementMonth = $"{selectedYear.ToString().Substring(2,2)}.{selectedMonth:D2}";
+            var settlementMonth = $"{selectedYear.ToString().Substring(2, 2)}.{selectedMonth:D2}";
 
             var openFileDialog = new OpenFileDialog
             {
@@ -45,7 +74,6 @@ namespace medipanda_windows_admin.Windows
 
             try
             {
-                // 제약사별 Converter (추가되면 여기에)
                 ISettlementConverter converter = selectedCompany.Name switch
                 {
                     "국제약품(주)" => new KukjeSettlementConverter(),
@@ -54,13 +82,22 @@ namespace medipanda_windows_admin.Windows
                     _ => throw new NotSupportedException($"지원하지 않는 제약사입니다: {selectedCompany.Name}")
                 };
 
-                converter.SettlementMonth = settlementMonth;
-                converter.DrugCompanyName = selectedCompany.Name;
+                await RunWithProgressAsync("정산파일 변환 중...", async (updateMessage) =>
+                {
+                    converter.SettlementMonth = settlementMonth;
+                    converter.DrugCompanyName = selectedCompany.Name;
 
-                converter.LoadFile(filePath);
-                await converter.ParseAsync();
-                converter.SaveConverted(convertedFilePath);
-                converter.Dispose();
+                    updateMessage("파일 로드 중...");
+                    converter.LoadFile(filePath);
+
+                    updateMessage("데이터 파싱 중...");
+                    await converter.ParseAsync();
+
+                    updateMessage("변환 파일 저장 중...");
+                    converter.SaveConverted(convertedFilePath);
+
+                    converter.Dispose();
+                });
 
                 MessageBox.Show($"{selectedYear}년 {selectedMonth}월 정산파일 변환이 완료되었습니다.", "완료", MessageBoxButton.OK, MessageBoxImage.Information);
             }
@@ -86,7 +123,11 @@ namespace medipanda_windows_admin.Windows
 
             try
             {
-                await KimsService.Instance.UploadKimsAsync(filePath);
+                await RunWithProgressAsync("KIMS 데이터 업로드 중...", async (updateMessage) =>
+                {
+                    updateMessage("파일 업로드 중...");
+                    await KimsService.Instance.UploadKimsAsync(filePath);
+                });
 
                 MessageBox.Show("KIMS 데이터 업로드가 완료되었습니다.", "완료", MessageBoxButton.OK, MessageBoxImage.Information);
             }
@@ -120,10 +161,10 @@ namespace medipanda_windows_admin.Windows
                 return;
 
             var filePath = openFileDialog.FileName;
+            int rowCount = 0;
 
             try
             {
-                // 제약사별 요율표 Converter
                 BaseRateConverter converter = selectedCompany.Name switch
                 {
                     "(주)동구바이오제약" => new DongguRateConverter(),
@@ -134,23 +175,31 @@ namespace medipanda_windows_admin.Windows
                     _ => throw new NotSupportedException($"지원하지 않는 제약사입니다: {selectedCompany.Name}")
                 };
 
-                using (converter)
+                await RunWithProgressAsync("요율표 업로드 중...", async (updateMessage) =>
                 {
-                    converter.DrugCompanyName = selectedCompany.Name;
-                    converter.ApplyMonth = applyMonth;
-                    converter.LoadFile(filePath);
+                    using (converter)
+                    {
+                        converter.DrugCompanyName = selectedCompany.Name;
+                        converter.ApplyMonth = applyMonth;
 
-                    await converter.ParseAsync();
+                        updateMessage("파일 로드 중...");
+                        converter.LoadFile(filePath);
 
-                    await RateTableService.Instance.UploadRateTableAsync(filePath, selectedYear, selectedMonth);
+                        updateMessage("데이터 파싱 중...");
+                        await converter.ParseAsync();
 
-                    MessageBox.Show(
-                        $"{selectedCompany.Name} {selectedYear}년 {selectedMonth}월 요율표 업로드가 완료되었습니다.\n" +
-                        $"총 {converter.Data.Rows.Count}건",
-                        "완료",
-                        MessageBoxButton.OK,
-                        MessageBoxImage.Information);
-                }
+                        rowCount = converter.Data.Rows.Count;
+
+                        updateMessage($"서버 업로드 중... ({rowCount}건)");
+                        await RateTableService.Instance.UploadRateTableAsync(converter.Data, selectedYear, selectedMonth);
+                    }
+                });
+
+                MessageBox.Show(
+                    $"{selectedCompany.Name} {selectedYear}년 {selectedMonth}월 요율표 업로드가 완료되었습니다.\n총 {rowCount}건",
+                    "완료",
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Information);
             }
             catch (Exception ex)
             {
