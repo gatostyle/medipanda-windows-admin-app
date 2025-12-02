@@ -82,30 +82,27 @@ jobs:
         $appConfigPath = "$csprojDir\AppConfig.cs"
         
         $content = @"
-namespace medipanda_windows_admin
-{
-    public static class AppConfig
-    {
-        public const string AwsAccessKeyId = "${{ secrets.AWS_ACCESS_KEY_ID }}";
-        public const string AwsSecretAccessKey = "${{ secrets.AWS_SECRET_ACCESS_KEY }}";
-
-        private static bool _isDevMode = false;
-
-        public static bool IsDevMode
+        namespace medipanda_windows_admin
         {
-            get => _isDevMode;
-            set => _isDevMode = value;
+            public static class AppConfig
+            {
+                public const string AwsAccessKeyId = "${{ secrets.AWS_ACCESS_KEY_ID }}";
+                public const string AwsSecretAccessKey = "${{ secrets.AWS_SECRET_ACCESS_KEY }}";
+                private static bool _isDevMode = false;
+                public static bool IsDevMode
+                {
+                    get => _isDevMode;
+                    set => _isDevMode = value;
+                }
+                public static string GetBaseUrl()
+                {
+                    return _isDevMode
+                        ? "https://dev.api.medipanda.co.kr"
+                        : "https://prod.api.medipanda.co.kr";
+                }
+            }
         }
-
-        public static string GetBaseUrl()
-        {
-            return _isDevMode
-                ? "https://dev.api.medipanda.co.kr"
-                : "https://prod.api.medipanda.co.kr";
-        }
-    }
-}
-"@
+        "@
         
         Set-Content -Path $appConfigPath -Value $content -Encoding UTF8
         Write-Host "Created AppConfig.cs at $appConfigPath"
@@ -153,7 +150,7 @@ namespace medipanda_windows_admin
         Set-Content -Path ./publish/version.json -Value $json -Encoding UTF8
       shell: pwsh
     
-    - name: Create installer with Inno Setup (Korean)
+    - name: Create installer with Inno Setup
       run: |
         choco install innosetup -y
         
@@ -164,13 +161,11 @@ namespace medipanda_windows_admin
         Write-Host "Found executable: $exeName"
         
         $setupScript = @"
-        ; UTF-8 with BOM
         #define MyAppName "메디판다(관리자)"
         #define MyAppVersion "$version"
         #define MyAppPublisher "(주)케이앤메디슨"
         #define MyAppURL "https://medipanda.co.kr"
         #define MyAppExeName "$exeName"
-
         [Setup]
         AppId={{F1E2D3C4-B5A6-7890-ABCD-EF1234567890}
         AppName={#MyAppName}
@@ -192,27 +187,21 @@ namespace medipanda_windows_admin
         PrivilegesRequired=lowest
         UninstallDisplayIcon={app}\{#MyAppExeName}
         WizardStyle=modern
-        
         [Languages]
         Name: "korean"; MessagesFile: "compiler:Languages\Korean.isl"
-
         [Tasks]
         Name: "desktopicon"; Description: "바탕 화면에 바로 가기 만들기"; GroupDescription: "추가 작업:"; Flags: unchecked
-
         [Files]
         Source: "publish\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
-
         [Icons]
         Name: "{group}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"
         Name: "{group}\{#MyAppName} 제거"; Filename: "{uninstallexe}"
         Name: "{autodesktop}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"; Tasks: desktopicon
-
         [Run]
         Filename: "{app}\{#MyAppExeName}"; Description: "{#MyAppName} 실행"; Flags: nowait postinstall skipifsilent
-
         [UninstallDelete]
         Type: filesandordirs; Name: "{app}"
-"@
+        "@
         
         $utf8Bom = New-Object System.Text.UTF8Encoding $true
         [System.IO.File]::WriteAllText("$PWD\setup.iss", $setupScript, $utf8Bom)
@@ -241,36 +230,11 @@ namespace medipanda_windows_admin
         $installerFile = "Medipanda-Setup-$version.exe"
         $s3Base = "s3://${{ env.S3_BUCKET }}/${{ env.S3_PREFIX }}/"
         
-        Write-Host "=== Uploading to S3 ==="
-        
         aws s3 cp $installerFile "${s3Base}${installerFile}" --cache-control "max-age=300"
-        Write-Host "✓ Uploaded: $installerFile"
-        
         aws s3 cp ./publish/version.json "${s3Base}version.json" --content-type "application/json" --cache-control "no-cache, no-store, must-revalidate"
-        Write-Host "✓ Uploaded: version.json"
-        
         aws s3 cp $installerFile "${s3Base}setup.exe" --cache-control "max-age=300"
-        Write-Host "✓ Copied to: setup.exe"
         
-        Write-Host ""
         Write-Host "=== Deployment Complete ==="
-        Write-Host "Install URL: https://${{ env.CLOUDFRONT_DOMAIN }}/app/windows/admin-app/setup.exe"
-        Write-Host "Version URL: https://${{ env.CLOUDFRONT_DOMAIN }}/app/windows/admin-app/version.json"
-      shell: pwsh
-    
-    - name: Verify deployment
-      run: |
-        Start-Sleep -Seconds 10
-        $versionUrl = "https://${{ env.CLOUDFRONT_DOMAIN }}/${{ env.S3_PREFIX }}/version.json"
-        
-        try {
-          $response = Invoke-WebRequest -Uri $versionUrl -UseBasicParsing
-          Write-Host "✓ Deployment verified!"
-          Write-Host $response.Content
-        } catch {
-          Write-Host "⚠ Verification failed (CloudFront may need time to update)"
-          Write-Host $_.Exception.Message
-        }
       shell: pwsh
     
     - name: Create GitHub Release
@@ -282,21 +246,6 @@ namespace medipanda_windows_admin
           
           ### 다운로드
           [설치 파일 다운로드](https://${{ env.CLOUDFRONT_DOMAIN }}/app/windows/admin-app/setup.exe)
-          
-          ### 변경사항
-          - 버전 ${{ steps.get_version.outputs.VERSION }} 릴리스
-          
-          ### 시스템 요구사항
-          - Windows 10/11 (64-bit)
-          - .NET Runtime 포함 (별도 설치 불필요)
-          
-          ### 설치 방법
-          1. 위 링크에서 설치 파일 다운로드
-          2. 다운로드한 파일 실행
-          3. 설치 마법사 지시에 따라 설치
-          
-          ### 제공
-          (주)케이앤메디슨
         draft: false
         prerelease: false
       env:
