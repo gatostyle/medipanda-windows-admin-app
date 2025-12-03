@@ -56,7 +56,7 @@ namespace medipanda_windows_admin.Converters
                     DrugCompanyName = DrugCompanyName,
                     ProductCode = productCode,
                     DrugPrice = GetCellDecimal(sheet, currentRow, colIndexes["약가"]),
-                    BaseCommissionRate = GetCellDecimal(sheet, currentRow, colIndexes["수수료율"]) * 100,
+                    BaseCommissionRate = GetCellDecimal(sheet, currentRow, colIndexes["수수료율"]),
                     Note = note
                 };
 
