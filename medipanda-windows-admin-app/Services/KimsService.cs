@@ -33,7 +33,7 @@ namespace medipanda_windows_admin.Services
                 var s3Prefix = await UploadToS3Async(tsvFilePath, prefix);
 
                 // 3. API 호출
-                await TriggerKimsUploadAsync(s3Prefix);
+                await TriggerKimsUploadAsync(prefix);
             }
             finally
             {
