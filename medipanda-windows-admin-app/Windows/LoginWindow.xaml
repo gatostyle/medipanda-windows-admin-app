@@ -6,11 +6,8 @@
         WindowStyle="None"
         ResizeMode="NoResize"
         Background="Transparent"
-        AllowsTransparency="True"
-        Focusable="True"
-        FocusManager.FocusedElement="{Binding RelativeSource={RelativeSource Self}}">
-    <Border Background="White" CornerRadius="10" BorderThickness="1" BorderBrush="#DDD"
-            MouseDown="Border_MouseDown">
+        AllowsTransparency="True">
+    <Border Background="White" CornerRadius="10" BorderThickness="1" BorderBrush="#DDD">
         <Grid>
             <Grid.RowDefinitions>
                 <RowDefinition Height="40"/>
@@ -83,33 +80,38 @@
 
             <!-- 버전 정보 (좌하단) -->
             <Grid Grid.Row="2" Background="#F8F9FA">
-                <TextBlock x:Name="VersionText"
-                          Text="v0.0.0" 
-                          HorizontalAlignment="Left"
-                          VerticalAlignment="Center"
-                          Margin="15,0,0,0"
-                          Foreground="#999"
-                          FontSize="11"
-                          FontFamily="Segoe UI"/>
+                <StackPanel Orientation="Horizontal"
+                            HorizontalAlignment="Left"
+                            VerticalAlignment="Center"
+                            Margin="15,0,0,0">
+                    <TextBlock x:Name="VersionText"
+                              Text="v0.0.0" 
+                              Foreground="#999"
+                              FontSize="11"
+                              FontFamily="Segoe UI"
+                              VerticalAlignment="Center"/>
 
-                <!-- 우하단: 회사 정보 + Dev Mode -->
-                <StackPanel Orientation="Horizontal" 
-                           HorizontalAlignment="Right"
-                           VerticalAlignment="Center"
-                           Margin="0,0,15,0">
-                    <TextBlock Text="© 2025 (주)케이앤메디슨" 
-                              Foreground="#BBB"
+                    <!-- 환경 선택 ComboBox -->
+                    <ComboBox x:Name="EnvironmentComboBox"
+                              Margin="15,0,0,0"
+                              Width="70"
+                              Height="22"
                               FontSize="10"
-                              FontFamily="Segoe UI"
-                              Margin="0,0,8,0"/>
-                    <TextBlock x:Name="DevModeText"
-                              Text="Dev Mode" 
-                              FontSize="10" 
-                              FontWeight="Bold"
-                              Foreground="#FF5722"
-                              FontFamily="Segoe UI"
-                              Visibility="Collapsed"/>
+                              SelectedIndex="0"
+                              SelectionChanged="EnvironmentComboBox_SelectionChanged">
+                        <ComboBoxItem Content="운영" Tag="Production"/>
+                        <ComboBoxItem Content="개발" Tag="Development"/>
+                    </ComboBox>
                 </StackPanel>
+
+                <!-- 우하단: 회사 정보 -->
+                <TextBlock Text="© 2025 (주)케이앤메디슨" 
+                          HorizontalAlignment="Right"
+                          VerticalAlignment="Center"
+                          Margin="0,0,15,0"
+                          Foreground="#BBB"
+                          FontSize="10"
+                          FontFamily="Segoe UI"/>
             </Grid>
         </Grid>
     </Border>
