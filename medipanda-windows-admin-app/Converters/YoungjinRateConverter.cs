@@ -36,7 +36,7 @@ namespace medipanda_windows_admin.Converters
                         DrugCompanyName = DrugCompanyName,
                         ProductCode = productCode,
                         DrugPrice = GetCellDecimal(sheet, currentRow, colIndexes["기준약가"]),
-                        BaseCommissionRate = GetCellDecimal(sheet, currentRow, colIndexes["수수료율"]) * 100,
+                        BaseCommissionRate = GetCellDecimal(sheet, currentRow, colIndexes["수수료율"]),
                         Note = colIndexes["비고"] >= 0 ? GetCellString(sheet, currentRow, colIndexes["비고"]) : string.Empty
                     };
 
@@ -55,7 +55,7 @@ namespace medipanda_windows_admin.Converters
             {
                 { "EDI코드", -1 },
                 { "기준약가", -1 },
-                { "ㅜ롯ㅅ숳수료율", -1 },
+                { "수수료율", -1 },
                 { "비고", -1 }
             };
 

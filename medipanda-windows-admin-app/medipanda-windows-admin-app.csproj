@@ -16,9 +16,9 @@
 	  <IncludeNativeLibrariesForSelfExtract>true</IncludeNativeLibrariesForSelfExtract>
 
 	  <!-- 버전 정보 -->
-	  <Version>1.0.0</Version>
-	  <AssemblyVersion>1.0.0.0</AssemblyVersion>
-	  <FileVersion>1.0.0.0</FileVersion>
+	  <Version>1.0.1</Version>
+	  <AssemblyVersion>1.0.1.0</AssemblyVersion>
+	  <FileVersion>1.0.1.0</FileVersion>
 
 	  <!-- 앱 정보 -->
 	  <ApplicationTitle>메디판다(관리자)</ApplicationTitle>

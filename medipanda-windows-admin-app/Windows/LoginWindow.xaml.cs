@@ -28,6 +28,17 @@ namespace medipanda_windows_admin.Windows
             {
                 bool isDevMode = selected.Tag?.ToString() == "Development";
                 AppConfig.IsDevMode = isDevMode;
+
+                if (isDevMode)
+                {
+                    UsernameTextBox.Text = "super";
+                    PasswordBox.Password = "super";
+                }
+                else
+                {
+                    UsernameTextBox.Text = "";
+                    PasswordBox.Password = "";
+                }
             }
         }
 

@@ -26,7 +26,6 @@ namespace medipanda_windows_admin
             loginWindow.WindowStartupLocation = WindowStartupLocation.CenterScreen;
 
             // 테스트용 자동 로그인 (프로덕션에서는 제거)
-            loginWindow.SetCredentials("super", "super");
             AppConfig.IsDevMode = true;
 
             if (loginWindow.ShowDialog() == true)
