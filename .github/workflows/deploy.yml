@@ -167,7 +167,7 @@ jobs:
         #define MyAppURL "https://medipanda.co.kr"
         #define MyAppExeName "$exeName"
         [Setup]
-        AppId={{F1E2D3C4-B5A6-7890-ABCD-EF1234567890}
+        AppId={{A1B2C3D4-E5F6-7890-ABCD-EF1234567891}
         AppName={#MyAppName}
         AppVersion={#MyAppVersion}
         AppPublisher={#MyAppPublisher}
@@ -175,7 +175,7 @@ jobs:
         AppSupportURL={#MyAppURL}/support
         AppUpdatesURL={#MyAppURL}/downloads
         AppCopyright=Copyright © 2025 (주)케이앤메디슨
-        DefaultDirName={autopf}\Medipanda
+        DefaultDirName={autopf}\MedipandaAdmin
         DefaultGroupName={#MyAppName}
         DisableProgramGroupPage=yes
         OutputDir=.
