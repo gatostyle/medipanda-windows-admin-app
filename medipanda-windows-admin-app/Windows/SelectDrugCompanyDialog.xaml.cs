@@ -60,7 +60,9 @@ namespace medipanda_windows_admin.Windows
             if (currentMonth == 1)
             {
                 // 1월이면 작년만
+                //years.Add(currentYear - 1);
                 years.Add(currentYear - 1);
+                years.Add(currentYear);
             }
             else
             {
@@ -70,7 +72,7 @@ namespace medipanda_windows_admin.Windows
             }
 
             YearComboBox.ItemsSource = years;
-            YearComboBox.SelectedItem = currentMonth == 1 ? currentYear - 1 : currentYear;
+            YearComboBox.SelectedItem = currentYear;
         }
 
         private void YearComboBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
