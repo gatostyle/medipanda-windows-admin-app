@@ -173,6 +173,7 @@ namespace medipanda_windows_admin.Windows
                     "한국파마" => new HankookRateConverter(),
                     "에이치엘비제약(주)" => new HlbRateConverter(),
                     "한풍제약" => new HanpoongRateConverter(),
+                    "경보제약" => new GyungboRateConverter(),
                     _ => throw new NotSupportedException($"지원하지 않는 제약사입니다: {selectedCompany.Name}")
                 };
 
