@@ -105,7 +105,7 @@ namespace medipanda_windows_admin.Services
                 sb.AppendLine(string.Join("\t", cells));
             }
 
-            File.WriteAllText(tsvFilePath, sb.ToString(), Encoding.UTF8);
+            File.WriteAllText(tsvFilePath, sb.ToString(), new UTF8Encoding(encoderShouldEmitUTF8Identifier: false));
             workbook.Close();
         }
 
@@ -124,7 +124,7 @@ namespace medipanda_windows_admin.Services
                 _ => string.Empty
             };
 
-            return value.Trim();
+            return value.Replace("\t", " ").Replace("\r", " ").Replace("\n", " ").Trim();
         }
 
         private string GetFormulaCellValue(ICell cell)
